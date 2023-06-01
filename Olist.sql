@@ -242,10 +242,6 @@ select case
 	format(OI.shipping_limit_date,'MMMM') as Month,
 	format(count(distinct(S.seller_id)),'###,###') as [Total Sellers]
 from Sellers as S
-	inner join Customer as C
-	on S.seller_zip_code_prefix = C.customer_zip_code_prefix
-	inner join Geolocation as G
-	on S.seller_zip_code_prefix = G.geolocation_zip_code_prefix
 	inner join [Order Items] as OI
 	on S.seller_id = OI.seller_id
 group by year(OI.shipping_limit_date), format(OI.shipping_limit_date,'MMMM')
@@ -273,10 +269,6 @@ select case
 	format(sum(OP.payment_value),'C') as [Total Sales],
 	format(AVG(OP.payment_value),'C') as [Average Sales]
 from Sellers as S
-	inner join Customer as C
-	on S.seller_zip_code_prefix = C.customer_zip_code_prefix
-	inner join Geolocation as G
-	on S.seller_zip_code_prefix = G.geolocation_zip_code_prefix
 	inner join [Order Items] as OI
 	on S.seller_id = OI.seller_id
 	inner join [Order Payment] as OP
