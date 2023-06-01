@@ -306,10 +306,6 @@ select case
 			else 'The sellers are fair enough'
 		end as Rating
 from Sellers as S
-	inner join Customer as C
-	on S.seller_zip_code_prefix = C.customer_zip_code_prefix
-	inner join Geolocation as G
-	on S.seller_zip_code_prefix = G.geolocation_zip_code_prefix
 	inner join [Order Items] as OI
 	on S.seller_id = OI.seller_id
 	inner join [Order Payment] as OP
@@ -322,8 +318,14 @@ order by year(OI.shipping_limit_date) asc, [Month Sort] asc, format(OI.shipping_
 
 
 ----Question 7: How many customers have made repeat purchases on Olist, and what percentage of total sales do they account for?
-	----(i) How many customers have made repeat purchases on Olist
-select format(count(distinct(S.customer_id)),'C') as [Total Customers] 
+	----(i) How many customers made purchases on Olist
+select format(count(distinct(S.customer_id)),'###,###') as [Total Customers] 
+from Customer as S
+	inner join Orders as O
+	on S.customer_id = O.customer_id;
+
+	----(ia) How many customers have made repeat purchases on Olist
+select format(count(S.customer_id),'###,###') as [Total Customers] 
 from Customer as S
 	inner join Orders as O
 	on S.customer_id = O.customer_id;
