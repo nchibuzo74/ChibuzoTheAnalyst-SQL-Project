@@ -220,10 +220,6 @@ order by upper(replace(op.payment_type,'_',' ')) asc, format(count(OI.order_id)/
 	----(i) How many sellers are active on Olist
 select format(count(distinct(S.seller_id)),'###,###') as [Total Sellers] 
 from Sellers as S
-	inner join Customer as C
-	on S.seller_zip_code_prefix = C.customer_zip_code_prefix
-	inner join Geolocation as G
-	on S.seller_zip_code_prefix = G.geolocation_zip_code_prefix
 	inner join [Order Items] as OI
 	on S.seller_id = OI.seller_id;
 
