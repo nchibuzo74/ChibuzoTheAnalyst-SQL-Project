@@ -184,18 +184,12 @@ order by COUNT(P.product_id) desc;
 
 ----Question 4: : What is the average order value (AOV) on Olist, and how does this vary by product category or payment method?
 	---(i)
-select format(avg(OP.payment_value),'C') as [AOV]
-from Products as P
-	inner join [Product Category Name Translate] as PCNE
-	on P.product_category_name = PCNE.product_category_name
-	inner join [Order Items] as OI
-	on P.product_id = OI.product_id
+select format(count(OI.order_id)/count(distinct(OI.order_id)),'###,###') as [AOV]
+from [Order Items] as OI
 	inner join orders as O
 	on OI.order_id = O.order_id
 	inner join [Order Payment] as OP
 	on O.order_id =  OP.order_id
-	inner join Customer as C
-	on O.customer_id = c.customer_id
 	inner join [Order Payment] as OPm
 	on OI.order_id = OPm.order_id
 where o.order_status in ('delivered','approved','invoiced','processing','shipped');
@@ -204,12 +198,12 @@ where o.order_status in ('delivered','approved','invoiced','processing','shipped
 select upper(REPLACE(PCNE.product_category_name_english,'_',' ')) as [Product Category Name],
 		upper(replace(op.payment_type,'_',' ')) as [Payment Type],
 	   format(COUNT(distinct(P.product_id)),'###,###') as [Popular Product Cat.],
-	   format(avg(OP.payment_value),'C') as [AOV]
-from Products as P
+	   format(count(OI.order_id)/count(distinct(OI.order_id)),'###,###') as [AOV]
+from [Order Items] as OI
+	inner join Products as P
+	on OI.product_id = P.product_id
 	inner join [Product Category Name Translate] as PCNE
 	on P.product_category_name = PCNE.product_category_name
-	inner join [Order Items] as OI
-	on P.product_id = OI.product_id
 	inner join orders as O
 	on OI.order_id = O.order_id
 	inner join [Order Payment] as OP
@@ -220,7 +214,7 @@ from Products as P
 	on OI.order_id = OPm.order_id
 where o.order_status in ('delivered','approved','invoiced','processing','shipped')
 group by upper(REPLACE(PCNE.product_category_name_english,'_',' ')), upper(replace(op.payment_type,'_',' '))
-order by upper(replace(op.payment_type,'_',' ')) asc, format(COUNT(distinct(P.product_id)),'###,###') desc;
+order by upper(replace(op.payment_type,'_',' ')) asc, format(count(OI.order_id)/count(distinct(OI.order_id)),'###,###') desc;
 
 ---Question 5: How many sellers are active on Olist, and how does this number change over time?
 	----(i) How many sellers are active on Olist
