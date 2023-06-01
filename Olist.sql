@@ -23,6 +23,8 @@ select format(sum(op.payment_value),'C') as [Total Revenue]
 from [order payment] as OP
 	inner join orders as O
 	on op.order_id = o.order_id
+	inner join [Order Items] as OI
+	on O.order_id = OI.order_id
 where o.order_status in ('delivered','approved','invoiced','processing','shipped');
 
 	----(ii) How has it changed over time? (i.e MoM)
@@ -59,7 +61,22 @@ order by YEAR(o.order_purchase_timestamp) ASC,[Month Sort] ASC, format(o.order_p
 
 ---Question 2: How many orders were placed on Olist, and how does this vary by month or season?
 	----(i) Total Orders
-select format(count(distinct(order_id)),'###,###') from Orders;
+select format(count(distinct(OI.order_id)),'###,###') 
+from [Order Items] as OI
+	inner join Orders as O
+	on OI.order_id = O.order_id
+	inner join [Order Payment] as OP
+	on O.order_id = OP.order_id;
+
+----(ia) Total fulfilled Orders 
+select format(count(distinct(OI.order_id)),'###,###') 
+from [Order Items] as OI
+	inner join Orders as O
+	on OI.order_id = O.order_id
+	inner join [Order Payment] as OP
+	on O.order_id = OP.order_id
+where o.order_status in ('delivered','approved','invoiced','processing','shipped');
+
 
 	----(ii) Variance by Month (MoM growth)
 select case 
