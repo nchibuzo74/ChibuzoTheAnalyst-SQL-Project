@@ -184,127 +184,173 @@ order by COUNT(P.product_id) desc;
 
 ----Question 4: : What is the average order value (AOV) on Olist, and how does this vary by product category or payment method?
 	---(i)
-select format(count(OI.order_id)/count(distinct(OI.order_id)),'###,###') as [AOV]
-from [Order Items] as OI
+select format(avg(OP.payment_value),'C') as [AOV]
+from [Order Payment] as OP
+	inner join [Order Items] as OI
+	on OP.order_id =  OI.order_id
 	inner join orders as O
 	on OI.order_id = O.order_id
-	inner join [Order Payment] as OP
-	on O.order_id =  OP.order_id
-	inner join [Order Payment] as OPm
-	on OI.order_id = OPm.order_id
 where o.order_status in ('delivered','approved','invoiced','processing','shipped');
 
-	---(ii)
+	---(iia) How does this vary by product category?
 select upper(REPLACE(PCNE.product_category_name_english,'_',' ')) as [Product Category Name],
-		upper(replace(op.payment_type,'_',' ')) as [Payment Type],
-	   format(COUNT(distinct(P.product_id)),'###,###') as [Popular Product Cat.],
-	   format(count(OI.order_id)/count(distinct(OI.order_id)),'###,###') as [AOV]
-from [Order Items] as OI
+	   format(avg(OP.payment_value),'C') as [AOV]
+from [Order Payment] as OP
+	inner join [Order Items] as OI
+	on OP.order_id =  OI.order_id
+	inner join orders as O
+	on OI.order_id = O.order_id
 	inner join Products as P
 	on OI.product_id = P.product_id
 	inner join [Product Category Name Translate] as PCNE
 	on P.product_category_name = PCNE.product_category_name
+	inner join Orders as Ord
+	on OP.order_id =  Ord.order_id
+where o.order_status in ('delivered','approved','invoiced','processing','shipped')
+group by upper(REPLACE(PCNE.product_category_name_english,'_',' '))
+order by format(avg(OP.payment_value),'C') desc;
+
+---(iib) Payment method?
+select upper(replace(op.payment_type,'_',' ')) as [Payment Type],
+	   format(avg(OP.payment_value),'C') as [AOV]
+from [Order Payment] as OP
+	inner join [Order Items] as OI
+	on OP.order_id =  OI.order_id
 	inner join orders as O
 	on OI.order_id = O.order_id
-	inner join [Order Payment] as OP
-	on O.order_id =  OP.order_id
-	inner join Customer as C
-	on O.customer_id = c.customer_id
-	inner join [Order Payment] as OPm
-	on OI.order_id = OPm.order_id
+	inner join Orders as Ord
+	on OP.order_id =  Ord.order_id
 where o.order_status in ('delivered','approved','invoiced','processing','shipped')
-group by upper(REPLACE(PCNE.product_category_name_english,'_',' ')), upper(replace(op.payment_type,'_',' '))
-order by upper(replace(op.payment_type,'_',' ')) asc, format(count(OI.order_id)/count(distinct(OI.order_id)),'###,###') desc;
+group by upper(replace(op.payment_type,'_',' '))
+order by format(avg(OP.payment_value),'C') desc;
+
+	---(iic) How does this vary by product category and payment method?
+select upper(REPLACE(PCNE.product_category_name_english,'_',' ')) as [Product Category Name],
+		upper(replace(op.payment_type,'_',' ')) as [Payment Type],
+	   format(avg(OP.payment_value),'C') as [AOV]
+from [Order Payment] as OP
+	inner join [Order Items] as OI
+	on OP.order_id =  OI.order_id
+	inner join orders as O
+	on OI.order_id = O.order_id
+	inner join Products as P
+	on OI.product_id = P.product_id
+	inner join [Product Category Name Translate] as PCNE
+	on P.product_category_name = PCNE.product_category_name
+	inner join Orders as Ord
+	on OP.order_id =  Ord.order_id
+where o.order_status in ('delivered','approved','invoiced','processing','shipped')
+group by upper(replace(op.payment_type,'_',' ')), upper(REPLACE(PCNE.product_category_name_english,'_',' '))
+order by format(avg(OP.payment_value),'C') desc;
 
 ---Question 5: How many sellers are active on Olist, and how does this number change over time?
-	----(i) How many sellers are active on Olist
+	----(i) How many sellers are on Olist
 select format(count(distinct(S.seller_id)),'###,###') as [Total Sellers] 
 from Sellers as S
 	inner join [Order Items] as OI
 	on S.seller_id = OI.seller_id;
 
-	----(ii) How does this number change over time?
+	----(iia) How does this number change over time?
 select case
-			when format(OI.shipping_limit_date,'MMMM') = 'January' then 1
-			when format(OI.shipping_limit_date,'MMMM') = 'February' then 2
-			when format(OI.shipping_limit_date,'MMMM') = 'March' then 3
-			when format(OI.shipping_limit_date,'MMMM') = 'April' then 4
-			when format(OI.shipping_limit_date,'MMMM') = 'May' then 5
-			when format(OI.shipping_limit_date,'MMMM') = 'June' then 6
-			when format(OI.shipping_limit_date,'MMMM') = 'July' then 7
-			when format(OI.shipping_limit_date,'MMMM') = 'August' then 8
-			when format(OI.shipping_limit_date,'MMMM') = 'September' then 9
-			when format(OI.shipping_limit_date,'MMMM') = 'October' then 10
-			when format(OI.shipping_limit_date,'MMMM') = 'November' then 11
+			when format(O.order_purchase_timestamp,'MMMM') = 'January' then 1
+			when format(O.order_purchase_timestamp,'MMMM') = 'February' then 2
+			when format(O.order_purchase_timestamp,'MMMM') = 'March' then 3
+			when format(O.order_purchase_timestamp,'MMMM') = 'April' then 4
+			when format(O.order_purchase_timestamp,'MMMM') = 'May' then 5
+			when format(O.order_purchase_timestamp,'MMMM') = 'June' then 6
+			when format(O.order_purchase_timestamp,'MMMM') = 'July' then 7
+			when format(O.order_purchase_timestamp,'MMMM') = 'August' then 8
+			when format(O.order_purchase_timestamp,'MMMM') = 'September' then 9
+			when format(O.order_purchase_timestamp,'MMMM') = 'October' then 10
+			when format(O.order_purchase_timestamp,'MMMM') = 'November' then 11
 			else 12
 		end as [Month Sort],
-	year(OI.shipping_limit_date) as Year,
-	format(OI.shipping_limit_date,'MMMM') as Month,
-	format(count(distinct(S.seller_id)),'###,###') as [Total Sellers]
-from Sellers as S
+	min(year(O.order_purchase_timestamp)) as [First Order],
+	max(year(O.order_purchase_timestamp)) as [Last Order],
+	year(O.order_purchase_timestamp) as [Active Year],
+	format(O.order_purchase_timestamp,'MMMM') as [Active Month],
+	format(count(distinct(S.seller_id)),'###,###') as [Active Sellers],
+	format(count(distinct(O.order_id)),'###,###') as [Total Order],
+	format(count(distinct(P.product_id)),'###,###') as [Total Product],
+	format(sum(OP.payment_value),'C') as Revenue,
+	format(avg(OP.payment_value),'C') as [Average Revenue]
+from Orders as O
+    inner join [Order Payment] as OP
+	on O.order_id = OP.order_id
 	inner join [Order Items] as OI
-	on S.seller_id = OI.seller_id
-group by year(OI.shipping_limit_date), format(OI.shipping_limit_date,'MMMM')
-order by year(OI.shipping_limit_date) asc, [Month Sort] asc, format(OI.shipping_limit_date,'MMMM') asc;
+	on OP.order_id = OI.order_id
+	inner join Products as P
+	on OI.product_id = P.product_id
+	inner join Sellers as S
+	on Oi.seller_id = S.seller_id
+where o.order_status in ('delivered','approved','invoiced','processing','shipped')
+group by year(O.order_purchase_timestamp), format(O.order_purchase_timestamp,'MMMM')
+order by year(O.order_purchase_timestamp) asc, [Month Sort] asc, format(O.order_purchase_timestamp,'MMMM') asc;
+
+	----(iib) How does this number change over time?
+	----Ans: Look at 3 months threshold sales to counted as an active customers
+select case
+			when format(O.order_purchase_timestamp,'MMMM') = 'January' then 1
+			when format(O.order_purchase_timestamp,'MMMM') = 'February' then 2
+			when format(O.order_purchase_timestamp,'MMMM') = 'March' then 3
+			when format(O.order_purchase_timestamp,'MMMM') = 'April' then 4
+			when format(O.order_purchase_timestamp,'MMMM') = 'May' then 5
+			when format(O.order_purchase_timestamp,'MMMM') = 'June' then 6
+			when format(O.order_purchase_timestamp,'MMMM') = 'July' then 7
+			when format(O.order_purchase_timestamp,'MMMM') = 'August' then 8
+			when format(O.order_purchase_timestamp,'MMMM') = 'September' then 9
+			when format(O.order_purchase_timestamp,'MMMM') = 'October' then 10
+			when format(O.order_purchase_timestamp,'MMMM') = 'November' then 11
+			else 12
+		end as [Month Sort],
+	min(year(O.order_purchase_timestamp)) as [First Order],
+	max(year(O.order_purchase_timestamp)) as [Last Order],
+	year(O.order_purchase_timestamp) as [Active Year],
+	format(O.order_purchase_timestamp,'MMMM') as [Active Month],
+	format(count(distinct(S.seller_id)),'###,###') as [Active Sellers],
+	format(count(distinct(O.order_id)),'###,###') as [Total Order],
+	format(count(distinct(P.product_id)),'###,###') as [Total Product],
+	format(sum(OP.payment_value),'C') as Revenue,
+	format(avg(OP.payment_value),'C') as [Average Revenue]
+from Orders as O
+    inner join [Order Payment] as OP
+	on O.order_id = OP.order_id
+	inner join [Order Items] as OI
+	on OP.order_id = OI.order_id
+	inner join Products as P
+	on OI.product_id = P.product_id
+	inner join Sellers as S
+	on Oi.seller_id = S.seller_id
+where o.order_status in ('delivered','approved','invoiced','processing','shipped')
+group by year(O.order_purchase_timestamp), format(O.order_purchase_timestamp,'MMMM')
+having datediff(month,min(year(O.order_purchase_timestamp)),max(year(O.order_purchase_timestamp))) >= 3    ----Using 3 months threshold (every seller must have had 3 months inbetween their 
+																											---first month and last month order to be counted among those who are active)
+order by year(O.order_purchase_timestamp) asc, [Month Sort] asc, format(O.order_purchase_timestamp,'MMMM') asc;
+
 
 ----Question 6: What is the distribution of seller ratings on Olist, and how does this impact sales performance?
-select case
-			when format(OI.shipping_limit_date,'MMMM') = 'January' then 1
-			when format(OI.shipping_limit_date,'MMMM') = 'February' then 2
-			when format(OI.shipping_limit_date,'MMMM') = 'March' then 3
-			when format(OI.shipping_limit_date,'MMMM') = 'April' then 4
-			when format(OI.shipping_limit_date,'MMMM') = 'May' then 5
-			when format(OI.shipping_limit_date,'MMMM') = 'June' then 6
-			when format(OI.shipping_limit_date,'MMMM') = 'July' then 7
-			when format(OI.shipping_limit_date,'MMMM') = 'August' then 8
-			when format(OI.shipping_limit_date,'MMMM') = 'September' then 9
-			when format(OI.shipping_limit_date,'MMMM') = 'October' then 10
-			when format(OI.shipping_limit_date,'MMMM') = 'November' then 11
-			else 12
-		end as [Month Sort],
-	upper(O.order_status),
-	year(OI.shipping_limit_date) as Year,
-	format(OI.shipping_limit_date,'MMMM') as Month,
-	format(count(distinct(S.seller_id)),'###,###') as [Total Sellers],
-	format(sum(OP.payment_value),'C') as [Total Sales],
-	format(AVG(OP.payment_value),'C') as [Average Sales]
-from Sellers as S
-	inner join [Order Items] as OI
-	on S.seller_id = OI.seller_id
-	inner join [Order Payment] as OP
-	on OI.order_id = OP.order_id
-	inner join Orders as O
-	on OP.order_id = O.order_id
-group by year(OI.shipping_limit_date), format(OI.shipping_limit_date,'MMMM'), upper(O.order_status)
-order by year(OI.shipping_limit_date) asc, [Month Sort] asc, format(OI.shipping_limit_date,'MMMM') asc, upper(O.order_status) asc;
-
-
-----Alternative to Question 6: What is the distribution of seller ratings on Olist, and how does this impact sales performance?
----Ans: Firstly, you need to calculate the average sales as a bench mark for distribution of seller ratings
-select case
-			when format(OI.shipping_limit_date,'MMMM') = 'January' then 1
-			when format(OI.shipping_limit_date,'MMMM') = 'February' then 2
-			when format(OI.shipping_limit_date,'MMMM') = 'March' then 3
-			when format(OI.shipping_limit_date,'MMMM') = 'April' then 4
-			when format(OI.shipping_limit_date,'MMMM') = 'May' then 5
-			when format(OI.shipping_limit_date,'MMMM') = 'June' then 6
-			when format(OI.shipping_limit_date,'MMMM') = 'July' then 7
-			when format(OI.shipping_limit_date,'MMMM') = 'August' then 8
-			when format(OI.shipping_limit_date,'MMMM') = 'September' then 9
-			when format(OI.shipping_limit_date,'MMMM') = 'October' then 10
-			when format(OI.shipping_limit_date,'MMMM') = 'November' then 11
-			else 12
-		end as [Month Sort],
-	year(OI.shipping_limit_date) as Year,
-	format(OI.shipping_limit_date,'MMMM') as Month,
-	format(count(distinct(S.seller_id)),'###,###') as [Total Sellers],
-	format(sum(OP.payment_value),'C') as [Total Sales],
-	format(AVG(OP.payment_value),'C') as [Average Sales],
+select S.seller_id,
+	   Orv.review_score as Rating,
 		case
-			when AVG(OP.payment_value) > 173.00 then 'The sellers are excellent'
-			when AVG(OP.payment_value) = 173.00 then 'The sellers are good'
-			else 'The sellers are fair enough'
-		end as Rating
+			when format(O.order_purchase_timestamp,'MMMM') = 'January' then 1
+			when format(O.order_purchase_timestamp,'MMMM') = 'February' then 2
+			when format(O.order_purchase_timestamp,'MMMM') = 'March' then 3
+			when format(O.order_purchase_timestamp,'MMMM') = 'April' then 4
+			when format(O.order_purchase_timestamp,'MMMM') = 'May' then 5
+			when format(O.order_purchase_timestamp,'MMMM') = 'June' then 6
+			when format(O.order_purchase_timestamp,'MMMM') = 'July' then 7
+			when format(O.order_purchase_timestamp,'MMMM') = 'August' then 8
+			when format(O.order_purchase_timestamp,'MMMM') = 'September' then 9
+			when format(O.order_purchase_timestamp,'MMMM') = 'October' then 10
+			when format(O.order_purchase_timestamp,'MMMM') = 'November' then 11
+			else 12
+		end as [Month Sort],
+	upper(O.order_status) as [Order Status],
+	year(O.order_purchase_timestamp) as Year,
+	format(O.order_purchase_timestamp,'MMMM') as Month,
+	format(count(distinct(O.order_id)),'###,###') as [Total Order],
+	format(sum(OP.payment_value),'C') as [Total Revenue],
+	format(AVG(OP.payment_value),'C') as [Average Revenue]
 from Sellers as S
 	inner join [Order Items] as OI
 	on S.seller_id = OI.seller_id
@@ -312,78 +358,212 @@ from Sellers as S
 	on OI.order_id = OP.order_id
 	inner join Orders as O
 	on OP.order_id = O.order_id
+	inner join [Order Reviews] as Orv
+	on O.order_id = Orv.order_id
+	inner join [Order Reviews] as Orv_a
+	on OI.order_id = Orv_a.order_id
+	inner join [Order Reviews] as Orv_b
+	on OP.order_id = Orv_b.order_id
 where o.order_status in ('delivered','approved','invoiced','processing','shipped')
-group by year(OI.shipping_limit_date), format(OI.shipping_limit_date,'MMMM')
-order by year(OI.shipping_limit_date) asc, [Month Sort] asc, format(OI.shipping_limit_date,'MMMM') asc, Rating asc;
-
+group by year(O.order_purchase_timestamp), format(O.order_purchase_timestamp,'MMMM'), S.seller_id, upper(O.order_status), Orv.review_score
+order by year(O.order_purchase_timestamp) asc, [Month Sort] asc, format(O.order_purchase_timestamp,'MMMM') asc;
 
 ----Question 7: How many customers have made repeat purchases on Olist, and what percentage of total sales do they account for?
-	----(i) How many customers made purchases on Olist
-select format(count(distinct(S.customer_id)),'###,###') as [Total Customers] 
-from Customer as S
+	----(ia) How many customers made purchases on Olist
+select format(count(distinct(C.customer_id)),'###,###') as [Total Customers] 
+from Customer as C
 	inner join Orders as O
-	on S.customer_id = O.customer_id;
+	on C.customer_id = O.customer_id
+	inner join [Order Items] as OI
+	on O.order_id = OI.order_id
+	inner join [Order Payment] as OP
+	on OI.order_id = OP.order_id
+	inner join [Order Payment] as OPm
+	on O.order_id = OPm.order_id
+where O.order_status in ('delivered','approved','invoiced','processing','shipped');
 
-	----(ia) How many customers have made repeat purchases on Olist
-select format(count(S.customer_id),'###,###') as [Total Customers] 
-from Customer as S
+	----(ib) How many customers have made repeat purchases on Olist
+select format(count(distinct(C.customer_unique_id)),'###,###') as [Total Customers],
+	   format(count(distinct(O.order_id)),'###,###') as [Repeated Order]
+from Customer as C
 	inner join Orders as O
-	on S.customer_id = O.customer_id;
+	on C.customer_id = O.customer_id
+	inner join [Order Items] as OI
+	on O.order_id = OI.order_id
+	inner join [Order Payment] as OP
+	on OI.order_id = OP.order_id
+	inner join [Order Payment] as OPm
+	on O.order_id = OPm.order_id
+where O.order_status in ('delivered','approved','invoiced','processing','shipped')
+having count(distinct(O.order_id)) >= 1;
 
 	---(ii) What percentage of total sales do they account for?
 		---Ans: It basically means market shares of the total sales among the customers
 set arithabort off;     ----The set arithabort off controls whether error messages are returned from overflow or divide-by-zero errors during a query
 set ansi_warnings off;  ----set ansi_warnings off is used to return null whenever the divide-by-zero error might occur
-select upper(S.customer_city) as [Customer City], 
-	   S.customer_state, 
+select format(count(distinct(C.customer_unique_id)),'###,###') as [Total Customers],
+	   format(count(distinct(O.order_id)),'###,###') as [Repeated Order],
 	   format(sum(OP.payment_value),'C') as [Total Sales],
-	   concat(round(coalesce((OP.payment_value / sum(OP.payment_value)) * 100,0),2),'%') as [% of Total Sales]
-from Customer as S
-	inner join Orders as O
-	on S.customer_id = O.customer_id
-	inner join [Order Payment] as OP
-	on O.order_id = OP.order_id
-	inner join [Order Items] as OI
-	on OP.order_id = OI.order_id
-where O.order_status in ('delivered','approved','invoiced','processing','shipped')
-group by upper(S.customer_city), S.customer_state, OP.payment_value
-order by upper(S.customer_city) asc, S.customer_state asc;
-
------Wondering state/Revisit ---(ii)
-set arithabort off;				----The set arithabort off controls whether error messages are returned from overflow or divide-by-zero errors during a query
-set ansi_warnings off;			----set ansi_warnings off is used to return null whenever the divide-by-zero error might occur
-select S.customer_city,
-		count(S.customer_id) over(partition by S.customer_city order by S.customer_state asc) as [Total Customers],
-		sum(OP.payment_value) over(partition by S.customer_city order by S.customer_state asc) as [Total Sales],
-		coalesce((OP.payment_value / sum(OP.payment_value)) * 100,0) as [% Total]
-from Customer as S
-	inner join Orders as O
-	on S.customer_id = O.customer_id
-	inner join [Order Payment] as OP
-	on O.order_id = OP.order_id
-	inner join [Order Items] as OI
-	on OP.order_id = OI.order_id
-where o.order_status in ('delivered','approved','invoiced','processing','shipped')
-group by S.customer_city,S.customer_state, OP.payment_value, S.customer_id
-order by S.customer_state asc;
-
-----Skip Question 8: What is the average customer rating for products sold on Olist, and how does this impact sales performance?
-select format((count(C.customer_id) / count(distinct(C.customer_id))),'###,###') as [Average Customer] 
+	   concat(round(coalesce(
+	   (OP.payment_value / sum(OP.payment_value)) * 100,
+	   0),2),'%') as [% of Total Sales]
 from Customer as C
 	inner join Orders as O
 	on C.customer_id = O.customer_id
-where O.order_status in ('delivered','approved','invoiced','processing','shipped');
-		
------Skip Question 9: What is the average order cancellation rate on Olist, and how does this impact seller performance?.
-select format(COUNT(O.order_id) / COUNT(distinct(O.order_id)),'###,###') as [Average Order Cancelled] 
-from Orders as O
 	inner join [Order Items] as OI
 	on O.order_id = OI.order_id
 	inner join [Order Payment] as OP
 	on OI.order_id = OP.order_id
-where O.order_status = 'canceled';
+	inner join [Order Payment] as OPm
+	on O.order_id = OPm.order_id
+where O.order_status in ('delivered','approved','invoiced','processing','shipped')
+group by OP.payment_value
+order by format(count(distinct(C.customer_unique_id)),'###,###') desc;
+
+----Question 8: What is the average customer rating for products sold on Olist, and how does this impact sales performance?
+select C.customer_unique_id,
+	   Orv.review_score as Rating,
+		case
+			when format(O.order_purchase_timestamp,'MMMM') = 'January' then 1
+			when format(O.order_purchase_timestamp,'MMMM') = 'February' then 2
+			when format(O.order_purchase_timestamp,'MMMM') = 'March' then 3
+			when format(O.order_purchase_timestamp,'MMMM') = 'April' then 4
+			when format(O.order_purchase_timestamp,'MMMM') = 'May' then 5
+			when format(O.order_purchase_timestamp,'MMMM') = 'June' then 6
+			when format(O.order_purchase_timestamp,'MMMM') = 'July' then 7
+			when format(O.order_purchase_timestamp,'MMMM') = 'August' then 8
+			when format(O.order_purchase_timestamp,'MMMM') = 'September' then 9
+			when format(O.order_purchase_timestamp,'MMMM') = 'October' then 10
+			when format(O.order_purchase_timestamp,'MMMM') = 'November' then 11
+			else 12
+		end as [Month Sort],
+	year(O.order_purchase_timestamp) as Year,
+	format(O.order_purchase_timestamp,'MMMM') as Month,
+	format(count(O.order_id),'###,###') as [Total Order],
+	format(sum(OP.payment_value),'C') as [Total Revenue],
+	format(AVG(OP.payment_value),'C') as [Average Revenue],
+	upper(replace(PCNT.product_category_name_english,'_',' ')) as [Product Category English],
+	P.product_id
+from Customer as C
+	inner join Orders as O
+	on C.customer_id = O.customer_id
+	inner join [Order Items] as OI
+	on O.order_id = OI.order_id
+	inner join Products as P
+	on OI.product_id = P.product_id
+	inner join [Product Category Name Translate] as PCNT
+	on P.product_category_name = PCNT.product_category_name
+	inner join [Order Payment] as OP
+	on OI.order_id = OP.order_id
+	inner join [Order Payment] as OPm
+	on O.order_id = OPm.order_id
+	inner join [Order Reviews] as Orv
+	on O.order_id = Orv.order_id
+	inner join [Order Reviews] as Orv_a
+	on OI.order_id = Orv_a.order_id
+	inner join [Order Reviews] as Orv_b
+	on OP.order_id = Orv_b.order_id
+where O.order_status in ('delivered','approved','invoiced','processing','shipped')
+group by year(O.order_purchase_timestamp), format(O.order_purchase_timestamp,'MMMM'), C.customer_unique_id, Orv.review_score, upper(replace(PCNT.product_category_name_english,'_',' ')), P.product_id
+order by year(O.order_purchase_timestamp) asc, [Month Sort] asc, format(O.order_purchase_timestamp,'MMMM') asc;
+		
+-----Question 9: What is the average order cancellation rate on Olist, and how does this impact seller performance?.
+		-----(i) What is the average order cancellation rate on Olist
+select concat(
+	   round(
+	   (cast(
+	   count(
+	   case
+			when O.order_status = 'canceled' then 1 end) 
+			as float)
+			/
+		count(*)) * 100,
+		2),
+		'%') as [Cancellation Rate],
+	   format(sum(OP.payment_value),'C') as [Total Revenue],
+	   format(AVG(OP.payment_value),'C') as [Average Revenue]
+from Sellers as S
+	inner join [Order Items] as OI
+	on S.seller_id = OI.seller_id
+	inner join [Order Payment] as OP
+	on OI.order_id = OP.order_id
+	inner join Orders as O
+	on OP.order_id = O.order_id
+	inner join [Order Reviews] as Orv
+	on O.order_id = Orv.order_id
+	inner join [Order Reviews] as Orv_a
+	on OI.order_id = Orv_a.order_id
+	inner join [Order Reviews] as Orv_b
+	on OP.order_id = Orv_b.order_id;
+----Summmary: On Olist, the cancellation rate is 0.48% which is less 1% which indicate that customers rarely cancel orders 
+
+		------(ii) How does this impact seller performance?
+select	S.seller_id,
+		case
+			when format(O.order_purchase_timestamp,'MMMM') = 'January' then 1
+			when format(O.order_purchase_timestamp,'MMMM') = 'February' then 2
+			when format(O.order_purchase_timestamp,'MMMM') = 'March' then 3
+			when format(O.order_purchase_timestamp,'MMMM') = 'April' then 4
+			when format(O.order_purchase_timestamp,'MMMM') = 'May' then 5
+			when format(O.order_purchase_timestamp,'MMMM') = 'June' then 6
+			when format(O.order_purchase_timestamp,'MMMM') = 'July' then 7
+			when format(O.order_purchase_timestamp,'MMMM') = 'August' then 8
+			when format(O.order_purchase_timestamp,'MMMM') = 'September' then 9
+			when format(O.order_purchase_timestamp,'MMMM') = 'October' then 10
+			when format(O.order_purchase_timestamp,'MMMM') = 'November' then 11
+			else 12
+		end as [Month Sort],
+	year(O.order_purchase_timestamp) as Year,
+	format(O.order_purchase_timestamp,'MMMM') as Month,
+	concat(
+	   round(
+	   (cast(
+	   count(
+	   case
+			when O.order_status = 'canceled' then 1 end) 
+			as float)
+			/
+		count(*)) * 100,
+		2),
+		'%') as [Cancellation Rate],
+	   format(sum(OP.payment_value),'C') as [Total Revenue],
+	   format(AVG(OP.payment_value),'C') as [Average Revenue]
+from Sellers as S
+	inner join [Order Items] as OI
+	on S.seller_id = OI.seller_id
+	inner join [Order Payment] as OP
+	on OI.order_id = OP.order_id
+	inner join Orders as O
+	on OP.order_id = O.order_id
+	inner join [Order Reviews] as Orv
+	on O.order_id = Orv.order_id
+	inner join [Order Reviews] as Orv_a
+	on OI.order_id = Orv_a.order_id
+	inner join [Order Reviews] as Orv_b
+	on OP.order_id = Orv_b.order_id
+group by year(O.order_purchase_timestamp), format(O.order_purchase_timestamp,'MMMM'), S.seller_id
+order by year(O.order_purchase_timestamp) asc, [Month Sort] asc, format(O.order_purchase_timestamp,'MMMM') asc;
 
 ----Question 10: What are the top-selling products on Olist, and how have their sales trends changed over time
+		-----(i) What are the top-selling products on Olist
+select upper(REPLACE(PCNT.product_category_name_english,'_',' ')) as [Product Category Name],
+	   P.product_id,
+	   format(count(distinct(O.order_id)),'###,###') as [Top Selling Product],
+	   format(sum(OP.payment_value),'C') as [Total Sales]
+from Products as P
+	inner join [Product Category Name Translate] as PCNT
+	on P.product_category_name = PCNT.product_category_name
+	inner join [Order Items] as OI
+	on P.product_id = OI.product_id
+	inner join Orders as O
+	on OI.order_id = O.order_id
+	inner join [Order Payment] as OP
+	on OI.order_id = OP.order_id
+where O.order_status in ('delivered','approved','invoiced','processing','shipped')
+group by upper(REPLACE(PCNT.product_category_name_english,'_',' ')), P.product_id
+order by format(count(distinct(O.order_id)),'###,###') desc;
+
+		-----(ii) How have their sales trends changed over time
 select case
 			when format(o.order_purchase_timestamp,'MMMM') = 'January' then 1
 			when format(o.order_purchase_timestamp,'MMMM') = 'February' then 2
@@ -398,11 +578,12 @@ select case
 			when format(o.order_purchase_timestamp,'MMMM') = 'November' then 11
 			else 12
 			end as [Month Sort],
-		format(O.order_purchase_timestamp,'MMMM') as Month,
-		year(o.order_purchase_timestamp) as Year,
 		upper(REPLACE(PCNT.product_category_name_english,'_',' ')) as [Product Category Name],
-	   format(count(P.product_id),'###,###') as [Top Selling Product],
+	   P.product_id,
+	   format(count(distinct(O.order_id)),'###,###') as [Top Selling Product],
 	   format(sum(OP.payment_value),'C') as [Total Sales],
+	   format(O.order_purchase_timestamp,'MMMM') as Month,
+	   year(o.order_purchase_timestamp) as Year,
 	   format(sum(OP.payment_value) - lag(sum(OP.payment_value)) over(order by format(O.order_purchase_timestamp,'MMMM') asc),'C') as [Sales Trend],
 	   concat(round(coalesce(
 	   (sum(OP.payment_value) - lag(sum(OP.payment_value)) over(order by format(O.order_purchase_timestamp,'MMMM') asc))
@@ -419,77 +600,58 @@ from Products as P
 	inner join [Order Payment] as OP
 	on OI.order_id = OP.order_id
 	where O.order_status in ('delivered','approved','invoiced','processing','shipped')
-group by  year(o.order_purchase_timestamp), format(O.order_purchase_timestamp,'MMMM'), upper(REPLACE(PCNT.product_category_name_english,'_',' '))
-order by [Month Sort] asc, year(o.order_purchase_timestamp) asc, format(o.order_purchase_timestamp,'MMMM') asc, format(count(P.product_id),'###,###') desc;
-
-
-----Alternative 1 to Question 10
-with CTE as (
-		select case
-			when format(o.order_purchase_timestamp,'MMMM') = 'January' then 1
-			when format(o.order_purchase_timestamp,'MMMM') = 'February' then 2
-			when format(o.order_purchase_timestamp,'MMMM') = 'March' then 3
-			when format(o.order_purchase_timestamp,'MMMM') = 'April' then 4
-			when format(o.order_purchase_timestamp,'MMMM') = 'May' then 5
-			when format(o.order_purchase_timestamp,'MMMM') = 'June' then 6
-			when format(o.order_purchase_timestamp,'MMMM') = 'July' then 7
-			when format(o.order_purchase_timestamp,'MMMM') = 'August' then 8
-			when format(o.order_purchase_timestamp,'MMMM') = 'September' then 9
-			when format(o.order_purchase_timestamp,'MMMM') = 'October' then 10
-			when format(o.order_purchase_timestamp,'MMMM') = 'November' then 11
-			else 12
-			end as [Month Sort],
-		format(O.order_purchase_timestamp,'MMMM') as Month,
-		year(o.order_purchase_timestamp) as Year,
-		upper(REPLACE(PCNT.product_category_name_english,'_',' ')) as [Product Category Name],
-	   format(count(P.product_id),'###,###') as [Top Selling Product],
-	   format(sum(OP.payment_value),'C') as [Total Sales],
-	   format(sum(OP.payment_value) - lag(sum(OP.payment_value)) over(order by format(O.order_purchase_timestamp,'MMMM') asc),'C') as [Sales Trend],
-	   concat(round(coalesce(
-	   (sum(OP.payment_value) - lag(sum(OP.payment_value)) over(order by format(O.order_purchase_timestamp,'MMMM') asc))
-			/
-		lag(sum(OP.payment_value)) over(order by format(O.order_purchase_timestamp,'MMMM') asc),
-		0),2),'%') as [% Sales Trend]
-from Products as P
-	inner join [Product Category Name Translate] as PCNT
-	on P.product_category_name = PCNT.product_category_name
-	inner join [Order Items] as OI
-	on P.product_id = OI.product_id
-	inner join Orders as O
-	on OI.order_id = O.order_id
-	inner join [Order Payment] as OP
-	on O.order_id = OP.order_id
-	where O.order_status in ('delivered','approved','invoiced','processing','shipped')
-group by  year(o.order_purchase_timestamp), format(O.order_purchase_timestamp,'MMMM'), upper(REPLACE(PCNT.product_category_name_english,'_',' '))
-			)
-select CTE.[Product Category Name], max([Top Selling Product]) as [Top Selling Product] from CTE
-group by CTE.[Product Category Name], CTE.[Top Selling Product]
-order by CTE.[Top Selling Product] desc;
----order by format(count(distinct(P.product_id)),'###,###') desc
-
-
-----Alternative 2 to Question 10
-select /*[Product Category Name] as [Product Category Name],*/ max([Top Selling Product]) as Highest
-from (
-	  select upper(REPLACE(PCNT.product_category_name_english,'_',' ')) as [Product Category Name], 
-	  format(count(distinct(P.product_id)),'###,###') as [Top Selling Product] 
-	from Products as P
-	inner join [Product Category Name Translate] as PCNT
-	on P.product_category_name = PCNT.product_category_name
-	inner join [Order Items] as OI
-	on P.product_id = OI.product_id
-	inner join Orders as O
-	on OI.order_id = O.order_id
-	where O.order_status in ('delivered','approved','invoiced','processing','shipped')
-group by upper(REPLACE(PCNT.product_category_name_english,'_',' '))
-	) as t;
-/*group by [Product Category Name];
-order by produ desc;*/
+group by  year(o.order_purchase_timestamp), format(O.order_purchase_timestamp,'MMMM'), upper(REPLACE(PCNT.product_category_name_english,'_',' ')), P.product_id
+order by year(o.order_purchase_timestamp) asc, [Month Sort] asc, format(o.order_purchase_timestamp,'MMMM') asc, format(count(distinct(P.product_id)),'###,###') desc;
 
 ---Question 11: Which payment methods are most commonly used by Olist customers, and how does this vary by product category or geographic region?
+		----(i) Which payment methods are most commonly used by Olist customers
 select top 1 row_number() over(order by count(OP.payment_type) desc) as [S/N],
 	   upper(replace(OP.payment_type,'_',' ')) as [Payment Type],
+	   format( count(OP.payment_type),'###,###') as [Most common payment method]
+from [Order Payment] as OP
+	inner join [Order Items] as OI
+	on OP.order_id = OI.order_id
+	inner join Orders as O
+	on OI.order_id = O.order_id
+group by OP.payment_type;
+
+		----(ii) How does this vary by product category
+select row_number() over(order by count(OP.payment_type) desc) as [S/N],
+	   upper(replace(OP.payment_type,'_',' ')) as [Payment Type],
+	   format( count(OP.payment_type),'###,###') as [Most common payment method],
+	   upper(replace(PCNT.product_category_name_english,'_',' ')) as [Product Category Name]
+from [Order Payment] as OP
+	inner join [Order Items] as OI
+	on OP.order_id = OI.order_id
+	inner join Orders as O
+	on OI.order_id = O.order_id
+	inner join Products as P
+	on OI.product_id = P.product_id
+	inner join [Product Category Name Translate] as PCNT
+	on P.product_category_name = PCNT.product_category_name
+group by PCNT.product_category_name_english, OP.payment_type;
+
+		----(iii) How does this vary by geographic region?
+select row_number() over(order by count(OP.payment_type) desc) as [S/N],
+	   upper(replace(OP.payment_type,'_',' ')) as [Payment Type],
 	  format( count(OP.payment_type),'###,###') as [Most common payment method],
+	   upper(G.geolocation_city) as [Geolocation City], 
+	   G.geolocation_state
+from [Order Payment] as OP
+	inner join [Order Items] as OI
+	on OP.order_id = OI.order_id
+	inner join Orders as O
+	on OI.order_id = O.order_id
+	inner join Customer as C
+	on O.customer_id = C.customer_id
+	inner join Geolocation as G
+	on C.customer_zip_code_prefix = G.geolocation_zip_code_prefix
+group by G.geolocation_city, G.geolocation_state, OP.payment_type;
+
+		----(iv)All together - Which payment methods are most commonly used by Olist customers, and how does this vary by product category or geographic region?
+select row_number() over(order by count(OP.payment_type) desc) as [S/N],
+	   upper(replace(OP.payment_type,'_',' ')) as [Payment Type],
+	   format( count(OP.payment_type),'###,###') as [Most common payment method],
 	   upper(replace(PCNT.product_category_name_english,'_',' ')) as [Product Category Name], 
 	   upper(G.geolocation_city) as [Geolocation City], 
 	   G.geolocation_state
@@ -508,11 +670,34 @@ from [Order Payment] as OP
 	on C.customer_zip_code_prefix = G.geolocation_zip_code_prefix
 group by PCNT.product_category_name_english, G.geolocation_city, G.geolocation_state, OP.payment_type;
 
-
 ----Question 12: How do customer reviews and ratings affect sales and product performance on Olist?
-select upper(OrdR.review_comment_message) as [Review Comment Message], 
-	   format(sum(OP.payment_value),'C') as [Total Sales], 
-	   Upper(replace(PCNT.product_category_name_english,'_',' ')) as [Product Category Name English] 
+select ordr.review_score,
+	   case
+			when OrdR.review_score = 5 then 'Excellent'
+			when OrdR.review_score = 4 then 'Very Good'
+			when OrdR.review_score = 3 then 'Good'
+			when OrdR.review_score = 2 then 'Bad'
+			else 'Very Bad'
+			end as Rating,
+	   upper(OrdR.review_comment_message) as [Review Comment Message], 
+	   Upper(replace(PCNT.product_category_name_english,'_',' ')) as [Product Category Name English],
+	   format(sum(OP.payment_value),'C') as [Total Sales],
+	   case
+			when format(o.order_purchase_timestamp,'MMMM') = 'January' then 1
+			when format(o.order_purchase_timestamp,'MMMM') = 'February' then 2
+			when format(o.order_purchase_timestamp,'MMMM') = 'March' then 3
+			when format(o.order_purchase_timestamp,'MMMM') = 'April' then 4
+			when format(o.order_purchase_timestamp,'MMMM') = 'May' then 5
+			when format(o.order_purchase_timestamp,'MMMM') = 'June' then 6
+			when format(o.order_purchase_timestamp,'MMMM') = 'July' then 7
+			when format(o.order_purchase_timestamp,'MMMM') = 'August' then 8
+			when format(o.order_purchase_timestamp,'MMMM') = 'September' then 9
+			when format(o.order_purchase_timestamp,'MMMM') = 'October' then 10
+			when format(o.order_purchase_timestamp,'MMMM') = 'November' then 11
+			else 12
+			end as [Month Sort],
+		format(O.order_purchase_timestamp,'MMMM') as Month,
+		year(o.order_purchase_timestamp) as Year
 from [Order Reviews] as OrdR
 	   inner join [Order Items] as OI
 	   on OrdR.order_id = OI.order_id
@@ -524,14 +709,25 @@ from [Order Reviews] as OrdR
 	   on OI.product_id = P.product_id
 	   inner join [Product Category Name Translate] as PCNT
 	   on P.product_category_name = PCNT.product_category_name
-where OrdR.review_comment_message <> ''					-----Not equal to empthy can be symbolize either ways like IS NOT NULL, != '', <>''. Either ways will give you same result
-group by OrdR.review_comment_message, PCNT.product_category_name_english;
+	   inner join Orders as O
+	   on OI.order_id = O.order_id
+	   inner join Orders as Ord
+	   on OP.order_id = Ord.order_id
+----- where OrdR.review_comment_message <> ''					-----Not equal to empthy can be symbolize either ways like IS NOT NULL, != '', <>''. Either ways will give you same result
+group by year(o.order_purchase_timestamp), format(O.order_purchase_timestamp,'MMMM'), PCNT.product_category_name_english, ordr.review_score, OrdR.review_comment_message
+order by year(o.order_purchase_timestamp), [Month Sort] desc, format(O.order_purchase_timestamp,'MMMM');
 
 
 ----Question 13: Which product categories have the highest profit margins on Olist, and how can the company increase profitability across different categories?
-select 
-	upper(replace(PCNT.product_category_name_english,'_',' ')) as [Product Category Name English], 
-	format((sum(OP.payment_value) - sum(OI.price)),'C') as [Profit Margin] 
+select row_number() over(order by ((sum(OP.payment_value) - (sum(OI.price) + sum(OI.freight_value))) / (sum(OI.price) + sum(OI.freight_value))) desc) as [S/N], 
+	   upper(replace(PCNT.product_category_name_english,'_',' ')) as [Product Category Name English],
+	   format(sum(OI.price),'C') as [Sales Price],
+	   format(sum(OI.freight_value),'C') as [Total Shipping Cost],
+	   format((sum(OI.price) + sum(OI.freight_value)),'C') as [Total Production Cost],
+	   format(sum(OP.payment_value),'C') as [Total Revenue],
+	   format(
+	   (sum(OP.payment_value) - (sum(OI.price) + sum(OI.freight_value))) / (sum(OI.price) + sum(OI.freight_value)),
+	   'C') as [Profit Margin]
 from Products as P
 	inner join [Product Category Name Translate] as PCNT
 	on P.product_category_name = PCNT.product_category_name
@@ -539,8 +735,7 @@ from Products as P
 	on P.product_id = OI.product_id
 	inner join [Order Payment] as OP
 	on OI.order_id = OP.order_id
-group by upper(replace(PCNT.product_category_name_english,'_',' '))
-order by format((sum(OP.payment_value) - sum(OI.price)),'C') desc;
+group by upper(replace(PCNT.product_category_name_english,'_',' '));
 
 ---Question 14: How does Olist's marketing spend and channel mix impact sales and customer acquisition costs, and how can the company optimize its marketing strategy to increase ROI?
 	---Ans: This can be achieved with BI tool like Power BI
@@ -701,7 +896,79 @@ group by year(o.order_purchase_timestamp),
 		 S.[Total Customer on Jan, 2017]
 order by [Month Sort] asc, year(o.order_purchase_timestamp), format(o.order_purchase_timestamp,'MMMM');
 
-
+----Alternative to Que 15(ii) Calculate customer retention rate according to geolocations.
+with E as (
+		select G.geolocation_zip_code_prefix, C.customer_id, 
+		COUNT(distinct(C.customer_id)) as [Total Customer on Dec, 2017] 
+from Customer as C
+	inner join Orders as O
+	on C.customer_id = O.customer_id
+	inner join Geolocation as G
+	on C.customer_zip_code_prefix = G.geolocation_zip_code_prefix
+where year(O.order_purchase_timestamp) = 2017 and format(O.order_purchase_timestamp,'MMMM') = 'December'     ----Start with the number of customers at the end of the time period (E)
+group by G.geolocation_zip_code_prefix, C.customer_id
+			),
+Total_Cus_2017 as (
+		select G.geolocation_zip_code_prefix, C.customer_id, 
+		COUNT(distinct(C.customer_id)) as [Total Customer in 2017] 
+from Customer as C
+	inner join Orders as O
+	on C.customer_id = O.customer_id
+	inner join Geolocation as G
+	on C.customer_zip_code_prefix = G.geolocation_zip_code_prefix
+where year(O.order_purchase_timestamp) = 2017
+group by G.geolocation_zip_code_prefix, C.customer_id
+				   ),
+S as (
+		select G.geolocation_zip_code_prefix, C.customer_id, 
+		COUNT(distinct(C.customer_id)) as [Total Customer on Jan, 2017] 
+from Customer as C
+	inner join Orders as O
+	on C.customer_id = O.customer_id
+	inner join Geolocation as G
+	on C.customer_zip_code_prefix = G.geolocation_zip_code_prefix
+where year(O.order_purchase_timestamp) = 2017 and format(O.order_purchase_timestamp,'MMMM') = 'January'         ----Customers at the beginning of the time period (S)
+group by G.geolocation_zip_code_prefix, C.customer_id
+	 )
+----Note N will be E.[Total Customer on Dec 31, 2017] - T.[Total Customer in 2017]
+select case
+			when format(o.order_purchase_timestamp,'MMMM') = 'January' then 1
+			when format(o.order_purchase_timestamp,'MMMM') = 'February' then 2
+			when format(o.order_purchase_timestamp,'MMMM') = 'March' then 3
+			when format(o.order_purchase_timestamp,'MMMM') = 'April' then 4
+			when format(o.order_purchase_timestamp,'MMMM') = 'May' then 5
+			when format(o.order_purchase_timestamp,'MMMM') = 'June' then 6
+			when format(o.order_purchase_timestamp,'MMMM') = 'July' then 7
+			when format(o.order_purchase_timestamp,'MMMM') = 'August' then 8
+			when format(o.order_purchase_timestamp,'MMMM') = 'September' then 9
+			when format(o.order_purchase_timestamp,'MMMM') = 'October' then 10
+			when format(o.order_purchase_timestamp,'MMMM') = 'November' then 11
+			else 12
+			end as [Month Sort],
+	   format(o.order_purchase_timestamp,'MMMM') as Month,
+	   year(o.order_purchase_timestamp) as Year,
+	   G.geolocation_zip_code_prefix,
+	   count(distinct(C.customer_id)) as [Total Customer],
+	   concat(((E.[Total Customer on Dec, 2017] - T.[Total Customer in 2017]) / S.[Total Customer on Jan, 2017]) * 100,'%') as [Customer Retention Rate] 
+from Customer as C
+	inner join E
+	on C.customer_id = E.customer_id
+	inner join Total_Cus_2017 as T
+	on C.customer_id = T.customer_id
+	inner join S
+	on C.customer_id = S.customer_id
+	inner join Orders as O
+	on C.customer_id = O.customer_id
+	inner join Geolocation as G
+	on C.customer_zip_code_prefix = G.geolocation_zip_code_prefix
+group by year(o.order_purchase_timestamp), 
+		 format(o.order_purchase_timestamp,'MMMM'), 
+		 G.geolocation_zip_code_prefix, 
+		 E.[Total Customer on Dec, 2017], 
+		 T.[Total Customer in 2017], 
+		 S.[Total Customer on Jan, 2017]
+order by [Month Sort] asc, year(o.order_purchase_timestamp), format(o.order_purchase_timestamp,'MMMM');
+-------------------------------------------------------------------------------------------------------------------------
 ------Rough work
 select case
 			when format(o.order_purchase_timestamp,'MMMM') = 'January' then 1
@@ -718,13 +985,21 @@ select case
 			else 12
 			end as [Month Sort],
 	G.geolocation_zip_code_prefix,
-	format(O.order_purchase_timestamp,'MMMM') as Month, year(O.order_purchase_timestamp) as Year, COUNT(distinct(C.customer_id)) as Cus 
+	format(O.order_purchase_timestamp,'D') as Day, 
+	format(O.order_purchase_timestamp,'MMMM') as Month, 
+	year(O.order_purchase_timestamp) as Year,
+	format(o.order_purchase_timestamp, 'hh:mm:ss') as [Order Time],
+	COUNT(C.customer_id) as [Total Customer] 
 from Customer as C
 	inner join Orders as O
 	on C.customer_id = O.customer_id
 	inner join Geolocation as G
 	on C.customer_zip_code_prefix = G.geolocation_zip_code_prefix
-group by G.geolocation_zip_code_prefix, format(O.order_purchase_timestamp,'MMMM'), year(O.order_purchase_timestamp)
-order by [Month Sort] asc, year(O.order_purchase_timestamp) asc, format(O.order_purchase_timestamp,'MMMM') asc;
+group by G.geolocation_zip_code_prefix, 
+		 format(O.order_purchase_timestamp,'MMMM'), 
+		 year(O.order_purchase_timestamp), 
+		 format(O.order_purchase_timestamp,'D'), 
+		 format(o.order_purchase_timestamp, 'hh:mm:ss')
+order by year(O.order_purchase_timestamp) asc, [Month Sort] asc, format(O.order_purchase_timestamp,'MMMM') asc;
 
-----End of Project on Olist
+----End of Project on Olist------------------------------------------------------------------------------------------------------------
