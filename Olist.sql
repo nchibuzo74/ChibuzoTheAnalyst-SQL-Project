@@ -418,6 +418,7 @@ from Customer as C
 	on O.order_id = OPm.order_id
 where O.order_status in ('delivered','approved','invoiced','processing','shipped')
 group by OP.payment_value
+having count(distinct(O.order_id)) >= 1
 order by format(count(distinct(C.customer_unique_id)),'###,###') desc;
 
 ----Question 8: What is the average customer rating for products sold on Olist, and how does this impact sales performance?
