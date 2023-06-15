@@ -751,7 +751,48 @@ from Geolocation as G
 group by G.geolocation_zip_code_prefix
 order by COUNT(distinct(C.customer_id)) desc;
 
-	----(ii) Calculate customer retention rate according to geolocations.
+---------(iia) Calculate customer retention rate.
+select format(count(distinct([Last Month].customer_id)),'###,###') as [# Customers still in business]
+from orders as [Last Month]
+left join Orders as [This Month]
+on [Last Month].customer_id = [This Month].customer_id
+and datediff(MONTH,[Last Month].order_purchase_timestamp,[This Month].order_purchase_timestamp) = 1
+where [Last Month].customer_id is not null
+and [Last Month].order_purchase_timestamp is not null
+and [This Month].order_purchase_timestamp is not null;
+
+--------(iib) Calculate customer chun rate.
+select format(count(distinct([Last Month].customer_id)),'###,###') as [# Customers still in business]
+from orders as [Last Month]
+left join Orders as [This Month]
+on [Last Month].customer_id = [This Month].customer_id
+and datediff(MONTH,[Last Month].order_purchase_timestamp,[This Month].order_purchase_timestamp) = 1
+where [Last Month].customer_id is not null
+
+---- Cohort Analysis for Customers that made purchases for across all month and year ----------------------------------------------------------
+select [Last Month].customer_id, 
+	   [Last Month].order_id, 
+	   [Last Month].order_purchase_timestamp,
+	   format(coalesce(sum(OP.Payment_value),0),'###,###') as [Previous Month Sales],
+	   [This Month].customer_id, 
+	   [This Month].order_id, 
+	   [This Month].order_purchase_timestamp,
+	   format(coalesce(sum(OP.Payment_value),0),'###,###') as [Next Month Sales]
+from orders as [Last Month]
+inner join [Order Payment] as OP
+on [Last Month].order_id = OP.order_id
+left join orders as [This Month]
+on [Last Month].customer_id = [This Month].customer_id
+and datediff(MONTH,[Last Month].order_purchase_timestamp,[This Month].order_purchase_timestamp)=1
+group by [Last Month].customer_id, 
+	     [Last Month].order_id, 
+		 [Last Month].order_purchase_timestamp, 
+		 [This Month].customer_id, 
+		 [This Month].order_id, 
+		 [This Month].order_purchase_timestamp
+order by [Last Month].customer_id asc, [This Month].customer_id asc;
+
+	----Rough work Que 15 (ii) Calculate customer retention rate according to geolocations.
 with E as (
 		select G.geolocation_zip_code_prefix, C.customer_id, 
 		COUNT(distinct(C.customer_id)) as [Total Customer on Dec, 2017] 
@@ -897,7 +938,7 @@ group by year(o.order_purchase_timestamp),
 		 S.[Total Customer on Jan, 2017]
 order by [Month Sort] asc, year(o.order_purchase_timestamp), format(o.order_purchase_timestamp,'MMMM');
 
-----Alternative to Que 15(ii) Calculate customer retention rate according to geolocations.
+----Rough work on Que 15(ii) Calculate customer retention rate according to geolocations.
 with E as (
 		select G.geolocation_zip_code_prefix, C.customer_id, 
 		COUNT(distinct(C.customer_id)) as [Total Customer on Dec, 2017] 
