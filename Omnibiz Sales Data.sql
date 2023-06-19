@@ -100,7 +100,7 @@ where [This Month].customerid is not null
 group by month([This Month].OrderPlacedDate);
 --------------------------------------------------------------------------------------------------------------
 
----- Cohort Analysis-----------------------------------------------------------------------------------------
+---- Cohort Analysis (i.e. The grouping of Retention and Chun customers)-----------------------------------------------------------------------------------------
 select [Last Month].customerid, 
 	   [Last Month].MasterOrderID, 
 	   [Last Month].OrderPlacedDate,
@@ -123,7 +123,7 @@ group by [Last Month].customerid,
 order by [Last Month].customerid asc, [This Month].customerid asc;
 -------------------------------------------------------------------------------------------------------------
 
----- Cohort Analysis on Customers that made purchases for two (2) months-------------------------------------------
+---- Cohort Analysis for two (2) months-------------------------------------------
 select [Last Month].customerid, 
 	   [Last Month].MasterOrderID, 
 	   [Last Month].OrderPlacedDate,
@@ -146,7 +146,7 @@ group by [Last Month].customerid,
 order by [Last Month].customerid asc, [This Month].customerid asc;
 ------------------------------------------------------------------------------------------------------------------
 
----- Cohort Analysis for Customers that made purchases for all months (i.e. 3 months)----------------------------------------------------------
+---- Cohort Analysis on the entire months (i.e. 3 months)----------------------------------------------------------
 select [Last Month].customerid, 
 	   [Last Month].MasterOrderID, 
 	   [Last Month].OrderPlacedDate,
@@ -237,6 +237,29 @@ where [Last Month].customerid is not null
 and [Last Month].OrderPlacedDate is not null
 and [This Month].OrderPlacedDate is not null;
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+----How many Chun and Retention customers do we have----------------------------------------------------------------------------------------------
+select top 1
+---- Chun customers (i.e. Customers that left the business)
+	  (select format(count(distinct([Last Month].customerid)),'###,###') as [# Customers left business]	   ----------Beginning of subquery
+	   from [Dummy Sales Data] as [Last Month]
+			left join [Dummy Sales Data] as [This Month]
+			on [Last Month].customerid = [This Month].customerid
+		and datediff(MONTH,[Last Month].OrderPlacedDate,[This Month].OrderPlacedDate)=1
+		where [Last Month].customerid is not null
+		and [Last Month].OrderPlacedDate <> ''
+		and [This Month].OrderPlacedDate is null) as [Chun Customers],				---------------------------------End of subquery
+---- Retention customers (i.e. Customers that are still in the business)
+	  (select format(count(distinct([Last Month].customerid)),'###,###') as [# Customers still in business]	 --------Beginning of subquery
+	  from [Dummy Sales Data] as [Last Month]
+		left join [Dummy Sales Data] as [This Month]
+		on [Last Month].customerid = [This Month].customerid
+	  and datediff(MONTH,[Last Month].OrderPlacedDate,[This Month].OrderPlacedDate)=1
+	  where [Last Month].customerid is not null
+	  and [Last Month].OrderPlacedDate is not null
+	  and [This Month].OrderPlacedDate is not null) as [Retention Customers]		--------------------------------End of subquery
+from [Dummy Sales Data];
+-----------------------------------------------------------------------------------------------------------------------------------------------------
 
 -----Total Customers-------------------------------------------------------------------------------------------------------------------------------------------
 select format(coalesce(count(distinct(A.customerid)),0),'###,###') as [Total Customers]
