@@ -1044,4 +1044,18 @@ group by G.geolocation_zip_code_prefix,
 		 format(o.order_purchase_timestamp, 'hh:mm:ss')
 order by year(O.order_purchase_timestamp) asc, [Month Sort] asc, format(O.order_purchase_timestamp,'MMMM') asc;
 
+-----Get the list of all Orders made per Customer----------------------------------------------------------------------------------------------------------------------------------------------
+select O.customer_id,
+	   STRING_AGG(OI.order_id,'; ') as [Order List],
+	   count(OI.order_id) as [Total Orders],
+	   STRING_AGG(OI.product_id,'; ') as [Product List],
+	   count(OI.product_id) as [Total Products]
+from [Order Items] as OI
+	inner join Orders as O
+	on OI.order_id = O.order_id
+	inner join Products as P
+	on OI.product_id = P.product_id
+group by O.customer_id
+order by O.customer_id asc;
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ----End of Project on Olist------------------------------------------------------------------------------------------------------------
